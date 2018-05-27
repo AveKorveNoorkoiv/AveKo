@@ -2,7 +2,7 @@
 /*
 Plugin Name: Dropbox Backup & Restore
 Description: Dropbox Backup & Restore Plugin to create Dropbox Full Backup (Files + Database) of your Web Page
-Version: 1.6
+Version: 1.6.1
 Text Domain: dropbox-backup
 Domain Path: /languages/
 */

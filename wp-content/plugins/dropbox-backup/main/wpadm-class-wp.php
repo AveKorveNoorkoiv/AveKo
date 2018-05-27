@@ -937,7 +937,7 @@
                             $dropbox = new dropbox($dropbox_options['app_key'], $dropbox_options['app_secret']);
                             $dropbox->setAccessToken2($dropbox_options['access_token'], $dropbox_options['token_type']);
                         }
-
+                        
                         $folder_project = self::getNameProject();
                         $backups = $dropbox->listing($folder_project);
                         $n = count($backups['items']);

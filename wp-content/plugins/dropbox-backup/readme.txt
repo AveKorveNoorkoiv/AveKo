@@ -1,6 +1,6 @@
 === Backup & Restore Dropbox ===
 Plugin Name: Backup & Restore Dropbox
-Version: 1.6
+Version: 1.6.1
 Donate link: http://www.wpadm.com/donate
 URI: http://www.wpadm.com/dropbox-backup
 Tags: dropbox, backup, dropbox backup, migrate, restore, database, full backup, manage, sicherung, database backup, file backup, page backup, page, web, web backup, web page, synchronize, clone, duplicate, move, web page backup, site, site backup, back up, cloud, Cloud Files, cloud backup, db backup, dump, german, multisite, German, schedule, storage, time, upload, data bank, zip, archive, backups, file, db, recover, recovery, restoration, wp backup, wordpress backup, wordpress backup to dropbox, plugin wordpress backup, wpadm, wpadm.com, website, website backup, website back up, wp backup, wordpress backup, scheduled backup, backup scheduler, tool, backup tool

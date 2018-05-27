@@ -257,7 +257,12 @@ if (!class_exists('WPadm_Method_Send_To_Dropbox')) {
                     if ( ( isset($res['size']) && isset($res['client_mtime']) ) || ( isset($res['result']['size']) && isset($res['result']['path_display']) ) ) {
                         $data_command = WPAdm_Running::getCommandResultData('command_dropbox');
                         if (!in_array($md5, $data_command)) {
-                            WPAdm_Core::log( __('File upload: ' ,'dropbox-backup') . basename( $file ) . __(' size: ' ,'dropbox-backup') . $res['size']);
+							
+							if (isset($res['result']['size'])) {
+								WPAdm_Core::log( __('File upload: ' ,'dropbox-backup') . basename( $file ) . __(' size: ' ,'dropbox-backup') . $res['result']['size']);
+							} else {
+								WPAdm_Core::log( __('File upload: ' ,'dropbox-backup') . basename( $file ) . __(' size: ' ,'dropbox-backup') . $res['size']);
+							}
                             $this->saveDataCommand($md5);
                             WPAdm_Process::setInc('dropbox', 1);
                         }

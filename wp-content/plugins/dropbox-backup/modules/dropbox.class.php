@@ -122,7 +122,50 @@ class dropbox
     {
         if ($this->oauth2) {
             $params = array('code' => $request_token);   // set code
-            $response = $this->oauth2_obj->getAccessToken($this->api_auth_token, 'authorization_code', $params);
+            try {
+                //
+                $response = $this->oauth2_obj->getAccessToken($this->api_auth_token, 'authorization_code', $params);
+            } catch ( ClientException $e ) {
+                $new_url = $this->getIp4ByHost($this->api_auth_token);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_auth_token);
+                        $response = $this->oauth2_obj->getAccessToken($new_url, 'authorization_code', $params, array('Host' => $url['host']));
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Auth is invalid';
+                    return $result;
+                }
+            } catch ( ClientInvalidArgumentException $e) {
+                $new_url = $this->getIp4ByHost($this->api_auth_token);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_auth_token);
+                        $response = $this->oauth2_obj->getAccessToken($new_url, 'authorization_code', $params, array('Host' => $url['host']));
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Auth is invalid';
+                    return $result;
+                }
+            }
             $this->oauth2_obj->setAccessToken($response['result']['access_token']);
             if ($response['result']['token_type'] == 'bearer') {
                 $this->oauth2_obj->setAccessTokenType( Client::ACCESS_TOKEN_BEARER );
@@ -141,6 +184,38 @@ class dropbox
         }
     }
 
+    public function getIp4ByHost($url)
+    {
+        $host = '';
+        if (is_array($url) && isset($url['host'])) {
+            $host = $url['host'];
+        } elseif (is_string($url)) {
+            $url = parse_url($url);
+            $host = $url['host'];
+        }
+        $ips = false;
+        if (!empty($host) && function_exists('gethostbynamel')) {
+            $ips = gethostbynamel($host);
+            $url['host'] = array_pop($ips);
+            $ips = $this->unparse_url($url);
+        }
+        return $ips;
+    }
+
+    public function unparse_url($parsed_url) 
+    { 
+        $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : ''; 
+        $host     = isset($parsed_url['host']) ? $parsed_url['host'] : ''; 
+        $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : ''; 
+        $user     = isset($parsed_url['user']) ? $parsed_url['user'] : ''; 
+        $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : ''; 
+        $pass     = ($user || $pass) ? "$pass@" : ''; 
+        $path     = isset($parsed_url['path']) ? $parsed_url['path'] : ''; 
+        $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : ''; 
+        $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
+        return "$scheme$user$pass$host$port$path$query$fragment"; 
+    } 
+
     /**
     * Удаление файла
     *
@@ -151,12 +226,55 @@ class dropbox
     {
         if ($this->oauth2) {
             $this->oauth2_obj->setPOSTJSON(true);
-            $res = $this->oauth2_obj->fetch($this->api_url2 . 'files/delete', array('path' => "/" . $file), Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8'));
+			
+            try {
+                $res = $this->oauth2_obj->fetch($this->api_url2 . 'files/delete', array('path' => "/" . $file), Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8'));
+            } catch (ClientInvalidArgumentException $e ) {
+                $new_url = $this->getIp4ByHost($this->api_url2);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_url2);
+                        $dir = $this->oauth2_obj->fetch( $new_url . 'files/delete', array('path' => "/" . $file), Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8', 'Host' => $url['host']) );
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Create dir is invalid';
+                    return $result;
+                }
+            } catch (ClientException $e) {
+                $new_url = $this->getIp4ByHost($this->api_url2);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_url2);
+                        $dir = $this->oauth2_obj->fetch( $new_url . 'files/delete', array('path' => "/" . $file), Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8', 'Host' => $url['host']) );
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Create dir is invalid';
+                    return $result;
+                }
+            }
             return $res;
         } else {
             return $this->doApi("fileops/delete", "POST", array(
-            "path" => $file,
-            "root" => "auto"
+                "path" => $file,
+                "root" => "auto"
             ));
         }
     }
@@ -174,8 +292,8 @@ class dropbox
         foreach ($files as $file) {
             $do = $this->deleteFile($file);
             $result[] = array (
-            "name"      => $file,
-            "result"    => $do['error'] ? 0 : 1
+                "name"      => $file,
+                "result"    => $do['error'] ? 0 : 1
             );
         }
 
@@ -196,9 +314,9 @@ class dropbox
             return $this->oauth2_obj->fetch($this->api_url2 . 'files/move', array('from_path' => $from, 'to_path' => $to), Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json'));
         } else {
             return $this->doApi("fileops/move", "POST", array(
-            "root"       => "auto",
-            "from_path"  => $from,
-            "to_path"    => $to
+                "root"       => "auto",
+                "from_path"  => $from,
+                "to_path"    => $to
             ));
         }
     }
@@ -210,22 +328,66 @@ class dropbox
             $data_send = array( 'path'=> '/' . ltrim( $path, '/' ) );
             if ($recursive) {
                 $data_send['recursive'] = true;
+            }  
+
+            try {
+                $dir =  $this->oauth2_obj->fetch($this->api_url2 . 'files/list_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8'));
+            } catch (ClientInvalidArgumentException $e ) {
+                $new_url = $this->getIp4ByHost($this->api_url2);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_url2);
+                        $dir = $this->oauth2_obj->fetch( $new_url . 'files/list_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8', 'Host' => $url['host']) );
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Files list is invalid';
+                    return $result;
+                }
+            } catch (ClientException $e) {
+                $new_url = $this->getIp4ByHost($this->api_url2);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_url2);
+                        $dir = $this->oauth2_obj->fetch( $new_url . 'files/list_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8', 'Host' => $url['host']) );
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Files list is invalid';
+                    return $result;
+                }
             }
-            $dir =  $this->oauth2_obj->fetch($this->api_url2 . 'files/list_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8'));
+
         } else {
             $dir = $this->doApi("metadata/auto/".ltrim($path, "/"), "GET", array(
-            "list" => TRUE
+                "list" => TRUE
             ));
         }
-
+		
         if ($dir['error']) {
             return $dir;
         } elseif (isset($dir['is_dir']) && !$dir['is_dir']) {  //this not folder
             return array (
-            "size"  => $dir['size'],
-            "bytes"  => $dir['bytes'],
-            "date"  => $dir['modified'],
-            "name"  => $dir['path']
+                "size"  => $dir['size'],
+                "bytes"  => $dir['bytes'],
+                "date"  => $dir['modified'],
+                "name"  => $dir['path']
             );
         } 
         $all_size = 0;
@@ -254,18 +416,18 @@ class dropbox
                 }
 
                 $items[]  = array (
-                "type"  => $item['is_dir'] ? "dir" : "file",
-                "date"  => $item['modified'],
-                "name"  => basename($item['path']),
-                "size"  => $item['size']
+                    "type"  => $item['is_dir'] ? "dir" : "file",
+                    "date"  => $item['modified'],
+                    "name"  => basename($item['path']),
+                    "size"  => $item['size']
                 );
             }
 
             $dir_result = array (
-            "size"  => $this->bite2other($all_size),
-            "date"  => $dir['modified'],
-            "name"  => $dir['path'],
-            "items" => $items
+                "size"  => $this->bite2other($all_size),
+                "date"  => $dir['modified'],
+                "name"  => $dir['path'],
+                "items" => $items
             );
         } elseif (isset($dir['result']['entries'])) {
             foreach ($dir['result']['entries'] as $item) {  
@@ -274,19 +436,19 @@ class dropbox
                         case 'folder' : 
                             if ($is_folder) {
                                 $items[]  = array (
-                                "type"  =>  "dir",
-                                "date"  => '',
-                                "name"  => basename($item['path_display']),
-                                "size"  => 0
+                                    "type"  =>  "dir",
+                                    "date"  => '',
+                                    "name"  => basename($item['path_display']),
+                                    "size"  => 0
                                 );
                             }
                             break;
                         case 'file' : 
                             $items[]  = array (
-                            "type"  =>  "file",
-                            "date"  => $item['client_modified'],
-                            "name"  => $item['name'],
-                            "size"  => $item['size']
+                                "type"  =>  "file",
+                                "date"  => $item['client_modified'],
+                                "name"  => $item['name'],
+                                "size"  => $item['size']
                             );
                             $all_size += $item['size']; 
                             break;
@@ -294,10 +456,10 @@ class dropbox
                 }
             }
             $dir_result = array (
-            "size"  => $this->bite2other($all_size),
-            "date"  => 0,
-            "name"  => $path,
-            "items" => $items
+                "size"  => $this->bite2other($all_size),
+                "date"  => 0,
+                "name"  => $path,
+                "items" => $items
             );
         }
         return $dir_result;
@@ -313,13 +475,13 @@ class dropbox
         if ($size < $kb) {
             return $size.' B';
         } else if ($size < $mb) {
-                return round($size / $kb, 2).' KB';
-            } else if ($size < $gb) {
-                    return round($size / $mb, 2).' MB';
-                } else if ($size < $tb) {
-                        return round($size / $gb, 2).' GB';
-                    } else {
-                        return round($size / $tb, 2).' TB';
+            return round($size / $kb, 2).' KB';
+        } else if ($size < $gb) {
+            return round($size / $mb, 2).' MB';
+        } else if ($size < $tb) {
+            return round($size / $gb, 2).' GB';
+        } else {
+            return round($size / $tb, 2).' TB';
         }
     }
 
@@ -340,12 +502,75 @@ class dropbox
         if (empty($server_path)) {
 
             if ($this->oauth2) {
-                $this->oauth2_obj->fetch($this->api_url_content2 . 'files/download', array('path' => $file), Client::HTTP_METHOD_POST, array(
-                'socket' => array('file_download' => $server_path),
-                CURLOPT_BINARYTRANSFER => 1,
-                CURLOPT_RETURNTRANSFER => 0,
-                )
-                );
+                try  {
+                    $this->oauth2_obj->fetch($this->api_url_content2 . 'files/download', 
+                        array('path' => $file), Client::HTTP_METHOD_POST, 
+                        array(
+                            'socket' => array('file_download' => $server_path),
+                            CURLOPT_BINARYTRANSFER => 1,
+                            CURLOPT_RETURNTRANSFER => 0,  
+                        )
+                    );
+                } catch(ClientException $e) {
+
+                    $new_url = $this->getIp4ByHost($this->api_url_content2);
+                    if ($new_url) {
+                        try {
+                            $url = parse_url($this->api_url_content2);
+                            $this->oauth2_obj->fetch($new_url . '/files/download', 
+                                array('path' => $file), Client::HTTP_METHOD_POST, 
+                                array(
+                                    'socket' => array('file_download' => $server_path),
+                                    CURLOPT_BINARYTRANSFER => 1,
+                                    CURLOPT_RETURNTRANSFER => 0,
+                                    'Host' => $url['host'], 
+                                )
+                            );
+                        } catch ( ClientException $e ) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        } catch ( ClientInvalidArgumentException $e) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        }
+                    } else {
+                        $result['error'] = 1;
+                        $result['text'] = 'Create dir is invalid';
+                        return $result;
+                    }
+                } catch (ClientInvalidArgumentException $e) {
+                    $new_url = $this->getIp4ByHost($this->api_url_content2);
+                    if ($new_url) {
+                        try {
+                            $url = parse_url($this->api_url_content2);
+                            $this->oauth2_obj->fetch($new_url . 'files/download', 
+                                array('path' => $file), Client::HTTP_METHOD_POST, 
+                                array(
+                                    'socket' => array('file_download' => $server_path),
+                                    CURLOPT_BINARYTRANSFER => 1,
+                                    CURLOPT_RETURNTRANSFER => 0,
+                                    'Host' => $url['host'],
+                                )
+                            );
+                        } catch ( ClientException $e ) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        } catch ( ClientInvalidArgumentException $e) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        }
+                    } else {
+                        $result['error'] = 1;
+                        $result['text'] = __( 'Create dir is invalid', 'dropbox-backup' );
+                        return $result;
+                    }
+                }
+
+
             } else {
                 header("Pragma: public");
                 header("Expires: 0");
@@ -355,35 +580,35 @@ class dropbox
                 header('Content-Disposition: attachment; filename="'.$file.'"');
                 header("Content-Transfer-Encoding: binary");
                 $this->doApi("files/auto/".ltrim($file, "/"), "GET", array(), array(
-                'socket' => array('file_download' => $server_path),
-                CURLOPT_BINARYTRANSFER => 1,
-                CURLOPT_RETURNTRANSFER => 0,
-                ), TRUE);
+                    'socket' => array('file_download' => $server_path),
+                    CURLOPT_BINARYTRANSFER => 1,
+                    CURLOPT_RETURNTRANSFER => 0,
+                    ), TRUE);
             }
             exit;
         } else { //Скачиваем на сервер
             //Файл недоступен для записи
             if (!$fd = fopen($server_path, "wb")) {
                 return array (
-                "error" => 1,
-                "text"  => "File '".$server_path."' not writable"
+                    "error" => 1,
+                    "text"  => "File '".$server_path."' not writable"
                 );
             }
 
             if ($this->oauth2) {    
                 $this->oauth2_obj->setPOSTJSON(false);
                 $res = $this->oauth2_obj->fetch($this->api_url_content2 . 'files/download', array(), 
-                Client::HTTP_METHOD_POST, array('Dropbox-API-Arg' => json_encode( array('path' => '/' . ltrim( $file , '/' ) ) ) ) );
+                    Client::HTTP_METHOD_POST, array('Dropbox-API-Arg' => json_encode( array('path' => '/' . ltrim( $file , '/' ) ) ) ) );
                 if (isset($res['code']) && $res['code'] != 200) {
                     if (is_array($res['result'])) {
                         return  array (
-                        "error" => 1,
-                        "text"  => $res['result']['error_summary']
+                            "error" => 1,
+                            "text"  => $res['result']['error_summary']
                         );
                     } else {
                         return  array (
-                        "error" => 1,
-                        "text"  => $res['result']
+                            "error" => 1,
+                            "text"  => $res['result']
                         );
                     }
                 } else {
@@ -391,11 +616,11 @@ class dropbox
                 }
             } else {
                 $this->doApi("files/auto/".ltrim($file, "/"), "GET", array(), array(
-                'socket' => array('file_download' => $server_path),
-                CURLOPT_BINARYTRANSFER => 1,
-                CURLOPT_RETURNTRANSFER => 0,
-                CURLOPT_FILE           => $fd
-                ), TRUE);
+                    'socket' => array('file_download' => $server_path),
+                    CURLOPT_BINARYTRANSFER => 1,
+                    CURLOPT_RETURNTRANSFER => 0,
+                    CURLOPT_FILE           => $fd
+                    ), TRUE);
             }
 
             fclose($fd);
@@ -441,8 +666,8 @@ class dropbox
         foreach ($files as $file => $dbx) {
             $do = $this->uploadFile($file, $dbx);
             $result[] = array (
-            "name"      => $file,
-            "result"    => $do['error'] ? 0 : 1
+                "name"      => $file,
+                "result"    => $do['error'] ? 0 : 1
             );
         }
 
@@ -465,8 +690,8 @@ class dropbox
 
         if (!is_file($file_path)) {
             return array(
-            "error" => 1,
-            "text"  => "File '".$file_path."' not found."
+                "error" => 1,
+                "text"  => "File '".$file_path."' not found."
             );
         }
 
@@ -477,22 +702,76 @@ class dropbox
         {
             if ($this->oauth2) {
                 try {
-                $this->oauth2_obj->setPOSTJSON(false);
-                $result = $this->oauth2_obj->fetch(
-                $this->api_url_content2 . 'files/upload', 
-                file_get_contents($file_path),
-                Client::HTTP_METHOD_POST, 
-                array(
-                'Dropbox-API-Arg' => json_encode( array( 'path' => '/' . ltrim( $dropbox_path, '/' ) ) ),
-                'Content-Type' => 'application/octet-stream',
-                )
-                );
+                    $this->oauth2_obj->setPOSTJSON(false);
+                    $result = $this->oauth2_obj->fetch(
+                        $this->api_url_content2 . 'files/upload', 
+                        file_get_contents($file_path),
+                        Client::HTTP_METHOD_POST, 
+                        array(
+                            'Dropbox-API-Arg' => json_encode( array( 'path' => '/' . ltrim( $dropbox_path, '/' ) ) ),
+                            'Content-Type' => 'application/octet-stream',
+                        )
+                    );
                 } catch(ClientException $e) {
-                    $result['error'] = 1;
-                    $result['text'] = $e->getMessage();
+
+                    $new_url = $this->getIp4ByHost($this->api_url_content2);
+                    if ($new_url) {
+                        try {
+                            $url = parse_url($this->api_url_content2);
+							WPAdm_Core::log( $new_url . 'files/upload' );
+                            $result = $this->oauth2_obj->fetch(
+                                $new_url . 'files/upload', 
+                                file_get_contents($file_path),
+                                Client::HTTP_METHOD_POST, 
+                                array(
+                                    'Dropbox-API-Arg' => json_encode( array( 'path' => '/' . ltrim( $dropbox_path, '/' ) ) ),
+                                    'Content-Type' => 'application/octet-stream',
+                                    'Host' => $url['host']
+                                )
+                            );
+                        } catch ( ClientException $e ) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        } catch ( ClientInvalidArgumentException $e) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        }
+                    } else {
+                        $result['error'] = 1;
+                        $result['text'] = 'Create dir is invalid';
+                        return $result;
+                    }
                 } catch (ClientInvalidArgumentException $e) {
-                    $result['error'] = 1;
-                    $result['text'] = $e->getMessage();
+                    $new_url = $this->getIp4ByHost($this->api_url_content2);
+                    if ($new_url) {
+                        try {
+                            $url = parse_url($this->api_url_content2);
+                            $result = $this->oauth2_obj->fetch(
+                                $new_url . 'files/upload', 
+                                file_get_contents($file_path),
+                                Client::HTTP_METHOD_POST, 
+                                array(
+                                    'Dropbox-API-Arg' => json_encode( array( 'path' => '/' . ltrim( $dropbox_path, '/' ) ) ),
+                                    'Content-Type' => 'application/octet-stream',
+                                    'Host' => $url['host']
+                                )
+                            );
+                        } catch ( ClientException $e ) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        } catch ( ClientInvalidArgumentException $e) {
+                            $result['error'] = 1;
+                            $result['text'] = $e->getMessage();
+                            return $result;
+                        }
+                    } else {
+                        $result['error'] = 1;
+                        $result['text'] = __( 'Create dir is invalid', 'dropbox-backup' );
+                        return $result;
+                    }
                 }
 
                 if (is_string($result['result']) && $result['code'] != 200) {
@@ -505,16 +784,16 @@ class dropbox
                 }
             } else {             
                 $result = $this->doApi("files_put/auto/".ltrim($dropbox_path, "/"),
-                "PUT",
-                compact ("overwrite"),
-                array(
-                'socket' => array('file' => $file_path),
-                CURLOPT_INFILE          => $file,
-                CURLOPT_INFILESIZE      => filesize($file_path),
-                CURLOPT_BINARYTRANSFER  => 1,
-                CURLOPT_PUT             => 1
-                ),
-                TRUE);
+                    "PUT",
+                    compact ("overwrite"),
+                    array(
+                        'socket' => array('file' => $file_path),
+                        CURLOPT_INFILE          => $file,
+                        CURLOPT_INFILESIZE      => filesize($file_path),
+                        CURLOPT_BINARYTRANSFER  => 1,
+                        CURLOPT_PUT             => 1
+                    ),
+                    TRUE);
             }
 
         }
@@ -525,9 +804,9 @@ class dropbox
 
             if ($this->oauth2) {
                 $session = $this->oauth2_obj->fetch($this->api_url_content2 . 'files/upload_session/start', 
-                array(), Client::HTTP_METHOD_POST, 
-                array('Dropbox-API-Arg' => json_encode(array('close' => true) ),
-                'Content-Type' => 'application/octet-stream' ) 
+                    array(), Client::HTTP_METHOD_POST, 
+                    array('Dropbox-API-Arg' => json_encode(array('close' => true) ),
+                        'Content-Type' => 'application/octet-stream' ) 
                 );
             }
 
@@ -539,23 +818,23 @@ class dropbox
 
                 if ($this->oauth2) {
                     $result = $this->oauth2_obj->fetch($this->api_url_content2 . 'files/upload_session/append', 
-                    array(), Client::HTTP_METHOD_POST, 
-                    array('Dropbox-API-Arg' => json_encode(array('session_id' => $session['session_id'], 'offset' => $offset) ),
-                    'Content-Type' => 'application/octet-stream' )
+                        array(), Client::HTTP_METHOD_POST, 
+                        array('Dropbox-API-Arg' => json_encode(array('session_id' => $session['session_id'], 'offset' => $offset) ),
+                            'Content-Type' => 'application/octet-stream' )
                     );
                 } else {
                     $result = $this->doApi("chunked_upload",
-                    "PUT",
-                    compact("upload_id", "offset"),
-                    array(
-                    'socket' => array('file' => $file_path, 'dropbox_path' => $dropbox_path),
+                        "PUT",
+                        compact("upload_id", "offset"),
+                        array(
+                            'socket' => array('file' => $file_path, 'dropbox_path' => $dropbox_path),
 
-                    CURLOPT_INFILE          => $file,
-                    CURLOPT_INFILESIZE      => $chunk,
-                    CURLOPT_BINARYTRANSFER  => 1,
-                    CURLOPT_PUT             => 1
-                    ),
-                    TRUE);
+                            CURLOPT_INFILE          => $file,
+                            CURLOPT_INFILESIZE      => $chunk,
+                            CURLOPT_BINARYTRANSFER  => 1,
+                            CURLOPT_PUT             => 1
+                        ),
+                        TRUE);
                 }
                 fseek($file, $offset);
                 if($offset >= $fsize) {
@@ -574,19 +853,19 @@ class dropbox
             }
             if ($this->oauth2) {
                 $result = $this->oauth2_obj->fetch($this->api_url_content2 . 'files/upload_session/finish', 
-                array(), Client::HTTP_METHOD_POST, 
-                array('Dropbox-API-Arg' => json_encode(array('cursor' => array('session_id' => $session['session_id'], 'offset' => $offset ), 
-                'commit' => array('path' => '/' . ltrim( $dropbox_path, '/' ) )
-                ) 
-                ),
-                'Content-Type' => 'application/octet-stream' )
+                    array(), Client::HTTP_METHOD_POST, 
+                    array('Dropbox-API-Arg' => json_encode(array('cursor' => array('session_id' => $session['session_id'], 'offset' => $offset ), 
+                        'commit' => array('path' => '/' . ltrim( $dropbox_path, '/' ) )
+                        ) 
+                        ),
+                        'Content-Type' => 'application/octet-stream' )
                 );
             } else {
                 $result = $this->doApi("commit_chunked_upload/auto/".ltrim($dropbox_path, "/"),
-                "POST",
-                compact("upload_id", "overwrite"),
-                array(),
-                TRUE);
+                    "POST",
+                    compact("upload_id", "overwrite"),
+                    array(),
+                    TRUE);
             }
         }
 
@@ -606,12 +885,54 @@ class dropbox
         if ( $this->oauth2 ) {
             $this->oauth2_obj->setPOSTJSON(true);
             $data_send = array( 'path' => "/" . ltrim($path, '/') );
-            $dir =  $this->oauth2_obj->fetch($this->api_url2 . 'files/create_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8'));
+            try {
+                $dir =  $this->oauth2_obj->fetch($this->api_url2 . 'files/create_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8'));
+            } catch (ClientInvalidArgumentException $e ) {
+                $new_url = $this->getIp4ByHost($this->api_url2);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_url2);
+                        $dir = $this->oauth2_obj->fetch( $new_url . '/files/create_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8', 'Host' => $url['host']) );
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Create dir is invalid';
+                    return $result;
+                }
+            } catch (ClientException $e) {
+                $new_url = $this->getIp4ByHost($this->api_url2);
+                if ($new_url) {
+                    try {
+                        $url = parse_url($this->api_url2);
+                        $dir = $this->oauth2_obj->fetch( $this->api_url2 . '/files/create_folder', $data_send, Client::HTTP_METHOD_POST, array('Content-Type' => 'application/json; charset=utf-8', 'Host' => $url['host']) );
+                    } catch ( ClientException $e ) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    } catch ( ClientInvalidArgumentException $e) {
+                        $result['error'] = 1;
+                        $result['text'] = $e->getMessage();
+                        return $result;
+                    }
+                } else {
+                    $result['error'] = 1;
+                    $result['text'] = 'Create dir is invalid';
+                    return $result;
+                }
+            }
             return $dir;
         } else {
             return $this->doApi("fileops/create_folder", "POST", array(
-            "root" => "auto",
-            "path" => $path
+                "root" => "auto",
+                "path" => $path
             ));
         }
     }
@@ -682,9 +1003,9 @@ class dropbox
         }
 
         $signed = $oauth->sign(array(
-        'action' => $method,
-        'path'   => $path
-        )
+            'action' => $method,
+            'path'   => $path
+            )
         );
 
         if (function_exists('curl_init')) {
@@ -693,10 +1014,10 @@ class dropbox
             }
             $ch = curl_init($url);
             $opts += array(
-            CURLOPT_RETURNTRANSFER => 1,
-            CURLOPT_HEADER         => 0,
-            CURLOPT_SSL_VERIFYPEER => 0,
-            CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_HEADER         => 0,
+                CURLOPT_SSL_VERIFYPEER => 0,
+                CURLOPT_SSL_VERIFYHOST => 0,
             );
 
             if ($method == "POST") {
