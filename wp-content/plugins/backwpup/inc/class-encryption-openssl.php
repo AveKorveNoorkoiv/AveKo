@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Encrypt / decrypt data using Open SSL.
  *
@@ -11,14 +12,21 @@
  */
 class BackWPup_Encryption_OpenSSL {
 
+	/**
+	 * @var string
+	 */
 	const PREFIX = 'OSSL$';
 
+	/**
+	 * @var string
+	 */
 	private static $cipher_method;
 
 	/**
 	 * @return bool
 	 */
 	public static function supported() {
+
 		return
 			version_compare( PHP_VERSION, '5.3.0', '>=' )
 			&& function_exists( 'openssl_get_cipher_methods' )
@@ -42,7 +50,7 @@ class BackWPup_Encryption_OpenSSL {
 		}
 
 		$preferred = array( 'AES-256-CTR', 'AES-128-CTR', 'AES-192-CTR' );
-		foreach( $preferred as $method ) {
+		foreach ( $preferred as $method ) {
 			if ( in_array( $method, $all_methods, true ) ) {
 				self::$cipher_method = $method;
 
@@ -60,6 +68,7 @@ class BackWPup_Encryption_OpenSSL {
 	 * @param string $key_type
 	 */
 	public function __construct( $enc_key, $key_type ) {
+
 		$this->key      = md5( (string) $enc_key );
 		$this->key_type = (string) $key_type;
 	}
@@ -68,7 +77,7 @@ class BackWPup_Encryption_OpenSSL {
 	 *
 	 * Encrypt a string using Open SSL lib with  AES-256-CTR cypher
 	 *
-	 * @param string $string value to encrypt
+	 * @param string $string value to encrypt.
 	 *
 	 * @return string encrypted string
 	 */
@@ -80,6 +89,7 @@ class BackWPup_Encryption_OpenSSL {
 
 		$nonce = openssl_random_pseudo_bytes( openssl_cipher_iv_length( self::cipher_method() ) );
 
+		// phpcs:disable
 		$encrypted = openssl_encrypt(
 			$string,
 			self::cipher_method(),
@@ -87,6 +97,7 @@ class BackWPup_Encryption_OpenSSL {
 			OPENSSL_RAW_DATA,
 			$nonce
 		);
+		// phpcs:enable
 
 		return BackWPup_Encryption::PREFIX . self::PREFIX . $this->key_type . base64_encode( $nonce . $encrypted );
 	}
@@ -95,7 +106,7 @@ class BackWPup_Encryption_OpenSSL {
 	 *
 	 * Decrypt a string using Open SSL lib with  AES-256-CTR cypher
 	 *
-	 * @param string $string value to decrypt
+	 * @param string $string value to decrypt.
 	 *
 	 * @return string decrypted string
 	 */
@@ -120,6 +131,7 @@ class BackWPup_Encryption_OpenSSL {
 		$nonce      = substr( $encrypted, 0, $nonce_size );
 		$to_decrypt = substr( $encrypted, $nonce_size );
 
+		// phpcs:disable
 		return openssl_decrypt(
 			$to_decrypt,
 			self::cipher_method(),
@@ -127,5 +139,6 @@ class BackWPup_Encryption_OpenSSL {
 			OPENSSL_RAW_DATA,
 			$nonce
 		);
+		// phpcs:enable
 	}
 }
